@@ -1,0 +1,55 @@
+package postgres
+
+import (
+	"auth-service/app/internal/exception"
+	"auth-service/app/internal/lib"
+	"auth-service/app/internal/model"
+	"database/sql"
+	"errors"
+	"log/slog"
+
+	"golang.org/x/net/context"
+)
+
+type userRoleRepository struct {
+	conn   Conn
+	logger *slog.Logger
+	ctx    context.Context
+}
+
+func NewUserRoleRepository(db Conn, logger *slog.Logger, ctx context.Context) *userRoleRepository {
+	return &userRoleRepository{conn: db, logger: logger, ctx: ctx}
+}
+
+func (r *userRoleRepository) CreateOne(userRole *model.UserRole) error {
+	query := `
+	INSERT INTO users_roles (user_id, role_name)
+	VALUES ($1, $2)
+	`
+	err := r.conn.GetContext(r.ctx, nil, query, userRole.UserID, userRole.RoleName)
+	if err != nil {
+		r.logger.Error("Database insert failed", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *userRoleRepository) GetRoleByUserID(userID uint) (lib.Role, error) {
+	var role lib.Role
+	query := `
+	SELECT * FROM users_roles
+	WHERE user_id = $1
+	`
+
+	row := r.conn.QueryRowxContext(r.ctx, query, userID)
+	if err := row.StructScan(&role); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", exception.ErrNotFound
+		}
+		r.logger.Error("Database select failed", "error", err)
+		return "", exception.ErrInternal
+	}
+
+	return role, nil
+}
