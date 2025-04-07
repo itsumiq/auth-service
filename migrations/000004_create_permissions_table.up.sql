@@ -1,0 +1,15 @@
+BEGIN;
+
+CREATE TABLE permissions (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+);
+
+CREATE TRIGGER update_permissions_updated_at_trigger
+BEFORE UPDATE ON permissions
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();
+
+COMMIT;
