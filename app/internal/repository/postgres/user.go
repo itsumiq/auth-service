@@ -20,21 +20,20 @@ type Conn interface {
 type userRepository struct {
 	conn   Conn
 	logger *slog.Logger
-	ctx    context.Context
 }
 
-func NewUserRepository(db Conn, logger *slog.Logger, ctx context.Context) *userRepository {
-	return &userRepository{conn: db, logger: logger, ctx: ctx}
+func NewUserRepository(db Conn, logger *slog.Logger) *userRepository {
+	return &userRepository{conn: db, logger: logger}
 }
 
-func (r *userRepository) CreateOne(user *model.User) error {
+func (r *userRepository) CreateOne(ctx context.Context, user *model.User) error {
 	query := `
 	INSERT INTO users (username, email, password)
 	VALUES ($1, $2, $3)
 	RETURNING id
 	`
 
-	err := r.conn.GetContext(r.ctx, &user.ID, query, user.Username, user.Email, user.Password)
+	err := r.conn.GetContext(ctx, &user.ID, query, user.Username, user.Email, user.Password)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 			return exception.ErrDuplicateEntry
@@ -46,14 +45,14 @@ func (r *userRepository) CreateOne(user *model.User) error {
 	return nil
 }
 
-func (r *userRepository) GetByUsername(username string) (*model.User, error) {
+func (r *userRepository) GetByUsername(ctx context.Context, username string) (*model.User, error) {
 	var user = &model.User{}
 	query := `
 	SELECT * FROM users
 	WHERE username = $1
 	`
 
-	row := r.conn.QueryRowxContext(r.ctx, query, username)
+	row := r.conn.QueryRowxContext(ctx, query, username)
 	if err := row.StructScan(user); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, exception.ErrNotFound
@@ -65,14 +64,14 @@ func (r *userRepository) GetByUsername(username string) (*model.User, error) {
 	return user, nil
 }
 
-func (r *userRepository) GetByEmail(email string) (*model.User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	var user = &model.User{}
 	query := `
 	SELECT * FROM users
 	WHERE email = $1
 	`
 
-	row := r.conn.QueryRowxContext(r.ctx, query, email)
+	row := r.conn.QueryRowxContext(ctx, query, email)
 	if err := row.StructScan(user); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, exception.ErrNotFound
@@ -84,14 +83,14 @@ func (r *userRepository) GetByEmail(email string) (*model.User, error) {
 	return user, nil
 }
 
-func (r *userRepository) GetCountByID(id uint) (int, error) {
+func (r *userRepository) GetCountByID(ctx context.Context, id uint) (int, error) {
 	var count int
 	query := `
 	SELECT COUNT(*) FROM users
 	WHERE id = $1
 	`
 
-	row := r.conn.QueryRowxContext(r.ctx, query, id)
+	row := r.conn.QueryRowxContext(ctx, query, id)
 	if err := row.StructScan(&count); err != nil {
 		r.logger.Error("Database scan result failed", "error", err)
 		return count, exception.ErrInternal

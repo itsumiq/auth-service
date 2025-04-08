@@ -3,7 +3,6 @@ package postgres
 import (
 	"auth-service/app/internal/exception"
 	"auth-service/app/internal/repository"
-	"context"
 	"log/slog"
 
 	"github.com/jmoiron/sqlx"
@@ -13,11 +12,10 @@ type unitOfWork struct {
 	db     *sqlx.DB
 	tx     *sqlx.Tx
 	logger *slog.Logger
-	ctx    context.Context
 }
 
-func NewUnitOfWork(db *sqlx.DB, logger *slog.Logger, ctx context.Context) *unitOfWork {
-	return &unitOfWork{db: db, logger: logger, ctx: ctx}
+func NewUnitOfWork(db *sqlx.DB, logger *slog.Logger) *unitOfWork {
+	return &unitOfWork{db: db, logger: logger}
 }
 
 func (uow *unitOfWork) Begin() error {
@@ -51,21 +49,21 @@ func (uow *unitOfWork) Rollback() error {
 
 func (uow *unitOfWork) UserRepository() repository.UserRepository {
 	if uow.tx != nil {
-		return NewUserRepository(uow.tx, uow.logger, uow.ctx)
+		return NewUserRepository(uow.tx, uow.logger)
 	}
-	return NewUserRepository(uow.db, uow.logger, uow.ctx)
+	return NewUserRepository(uow.db, uow.logger)
 }
 
 func (uow *unitOfWork) RefreshSessionRepository() repository.RefreshSessionRepository {
 	if uow.tx != nil {
-		return NewRefreshSessionRepository(uow.tx, uow.logger, uow.ctx)
+		return NewRefreshSessionRepository(uow.tx, uow.logger)
 	}
-	return NewRefreshSessionRepository(uow.db, uow.logger, uow.ctx)
+	return NewRefreshSessionRepository(uow.db, uow.logger)
 }
 
 func (uow *unitOfWork) UserRoleRepository() repository.UserRoleRepository {
 	if uow.tx != nil {
-		return NewUserRoleRepository(uow.tx, uow.logger, uow.ctx)
+		return NewUserRoleRepository(uow.tx, uow.logger)
 	}
-	return NewUserRoleRepository(uow.db, uow.logger, uow.ctx)
+	return NewUserRoleRepository(uow.db, uow.logger)
 }
