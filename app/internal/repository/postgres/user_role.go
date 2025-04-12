@@ -37,12 +37,12 @@ func (r *userRoleRepository) CreateOne(ctx context.Context, userRole *model.User
 func (r *userRoleRepository) GetRoleByUserID(ctx context.Context, userID uint) (lib.Role, error) {
 	var role lib.Role
 	query := `
-	SELECT * FROM users_roles
+	SELECT role_name FROM users_roles
 	WHERE user_id = $1
 	`
 
 	row := r.conn.QueryRowxContext(ctx, query, userID)
-	if err := row.StructScan(&role); err != nil {
+	if err := row.Scan(&role); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", exception.ErrNotFound
 		}
