@@ -177,7 +177,7 @@ func (s *AuthService) RefreshTokens(
 		return nil, err
 	}
 
-	if sessionModel.ExpireAt.After(time.Now().UTC()) {
+	if sessionModel.ExpireAt.Before(time.Now().UTC()) {
 		return nil, exception.ErrTokenExpired
 	}
 
